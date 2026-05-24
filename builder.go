@@ -52,7 +52,7 @@ func (b *QueryBuilder) PlaceholderFormat(placeholder string) *QueryBuilder {
 // Placeholders generates a string of repeated placeholders separated by sep.
 // Uses the QueryBuilder's current placeholder format and repeats it count times.
 // Example: b.Placeholders(", ", 3) with Dollar → "$1, $2, $3".
-func (b *QueryBuilder) Placeholders(sep string, count uint) string {
+func (b *QueryBuilder) Placeholders(sep string, count int) string {
 
 	return Placeholders(b.placeholder, sep, count)
 }
@@ -150,11 +150,21 @@ func (b *QueryBuilder) AndWhere(sqltpl string, args ...any) *QueryBuilder {
 	return b
 }
 
+func sliceNotNils(s []any) bool {
+
+	for _, v := range s {
+		if v != nil {
+			return true
+		}
+	}
+	return false
+}
+
 // FilterWhere sets the WHERE clause only if args are provided (non-nil).
 // Useful for conditional filtering based on user input. Returns the QueryBuilder.
 func (b *QueryBuilder) FilterWhere(sqltpl string, args ...any) *QueryBuilder {
 
-	if args != nil {
+	if sliceNotNils(args) {
 		b.Where(sqltpl, args...)
 	}
 	return b
@@ -164,7 +174,7 @@ func (b *QueryBuilder) FilterWhere(sqltpl string, args ...any) *QueryBuilder {
 // Useful for optional filters in dynamic queries. Returns the QueryBuilder.
 func (b *QueryBuilder) AndFilterWhere(sqltpl string, args ...any) *QueryBuilder {
 
-	if args != nil {
+	if sliceNotNils(args) {
 		b.AndWhere(sqltpl, args...)
 	}
 	return b
@@ -189,7 +199,7 @@ func (b *QueryBuilder) OrderBy(orderBy string) *QueryBuilder {
 // Limit sets the LIMIT clause. Accepts a non-negative integer.
 // The value is parameterized using the current placeholder format.
 // Returns the QueryBuilder for chaining.
-func (b *QueryBuilder) Limit(limit uint) *QueryBuilder {
+func (b *QueryBuilder) Limit(limit int) *QueryBuilder {
 
 	b.limit = fmt.Sprintf("%d", limit)
 	return b
@@ -198,7 +208,7 @@ func (b *QueryBuilder) Limit(limit uint) *QueryBuilder {
 // Offset sets the OFFSET clause. Accepts a non-negative integer.
 // The value is parameterized using the current placeholder format.
 // Returns the QueryBuilder for chaining.
-func (b *QueryBuilder) Offset(offset uint) *QueryBuilder {
+func (b *QueryBuilder) Offset(offset int) *QueryBuilder {
 
 	b.offset = fmt.Sprintf("%d", offset)
 	return b
@@ -292,12 +302,12 @@ func (b *QueryBuilder) createOffset() (string, []any) {
 	return "OFFSET " + b.placeholder + " ", offsetValues
 }
 
-func (b *QueryBuilder) placenums(args []any, start uint) []any {
+func (b *QueryBuilder) placenums(args []any, start int) []any {
 
 	placenums := make([]any, 0, len(args))
 
 	for i := range len(args) {
-		placenums = append(placenums, start+uint(i))
+		placenums = append(placenums, start+int(i))
 	}
 
 	return placenums

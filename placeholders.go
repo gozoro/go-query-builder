@@ -9,7 +9,7 @@ import (
 // repeated count times, with each instance separated by sep.
 // It is commonly used to generate parameter lists for SQL queries,
 // such as IN (...) clauses or bulk INSERT statements.
-func Placeholders(placeholder, sep string, count uint) string {
+func Placeholders(placeholder, sep string, count int) string {
 
 	placeholders := make([]string, 0, count)
 
@@ -25,7 +25,7 @@ func Placeholders(placeholder, sep string, count uint) string {
 // each item, starting from the specified index and repeating count times.
 // Commonly used to construct dynamic SQL parameter lists for IN (...) clauses,
 // multi-row VALUES, or batch operations requiring sequentially numbered arguments.
-func IndexedPlaceholders(placeholderFormat, sep string, start, count uint) string {
+func IndexedPlaceholders(placeholderFormat, sep string, start, count int) string {
 	placeholders := make([]string, 0, count)
 	for i := range count {
 		placeholders = append(placeholders, fmt.Sprintf(placeholderFormat, start+i))

@@ -6,8 +6,8 @@ type argsMap struct {
 	opts *options
 	args map[string]any
 
-	limit          uint
-	offset         uint
+	limit          int
+	offset         int
 	orderKey       string
 	defaultOrderBy string
 	orderByRules   map[string]string
@@ -18,10 +18,10 @@ type Option func(*options)
 
 type options struct {
 	limitParam   string
-	limitDefault uint
-	limitMax     uint
+	limitDefault int
+	limitMax     int
 	offsetParam  string
-	offsetFunc   func(uint) uint
+	offsetFunc   func(int) int
 	orderParams  []string
 	orderKeyFunc func([]string) string
 }
@@ -31,7 +31,7 @@ var defaultOptions = options{
 	limitDefault: 10,
 	limitMax:     1000,
 	offsetParam:  "offset",
-	offsetFunc: func(offset uint) uint {
+	offsetFunc: func(offset int) int {
 		return offset
 	},
 	orderParams: []string{"sort"},
@@ -54,14 +54,14 @@ func NewArgs(args map[string]any, opt ...Option) *argsMap {
 	m := &argsMap{}
 
 	if limit, ok := args[opts.limitParam]; ok {
-		m.limit = min(limit.(uint), opts.limitMax)
+		m.limit = min(limit.(int), opts.limitMax)
 		delete(args, opts.limitParam)
 	} else {
 		m.limit = opts.limitDefault
 	}
 
 	if offset, ok := args[opts.offsetParam]; ok {
-		m.offset = opts.offsetFunc(offset.(uint))
+		m.offset = opts.offsetFunc(offset.(int))
 		delete(args, opts.offsetParam)
 	}
 
@@ -88,14 +88,14 @@ func WithLimitParam(limitParam string) Option {
 }
 
 // WithLimitDefault is an Option to sets the default value for limit
-func WithLimitDefault(limitDefault uint) Option {
+func WithLimitDefault(limitDefault int) Option {
 	return func(o *options) {
 		o.limitDefault = limitDefault
 	}
 }
 
 // WithLimitMax is an Option to sets the max value for limit
-func WithLimitMax(limitMax uint) Option {
+func WithLimitMax(limitMax int) Option {
 	return func(o *options) {
 		o.limitMax = limitMax
 	}
@@ -109,7 +109,7 @@ func WithOffsetParam(offsetParam string) Option {
 }
 
 // WithOffsetFunc is an Option to sets the offset calculation function
-func WithOffsetFunc(offsetFunc func(uint) uint) Option {
+func WithOffsetFunc(offsetFunc func(int) int) Option {
 	return func(o *options) {
 		o.offsetFunc = offsetFunc
 	}
@@ -157,12 +157,12 @@ func (m *argsMap) Value(param string) any {
 }
 
 // Limit is a method to returns the value of the LIMIT clause in the SQL query.
-func (m *argsMap) Limit() uint {
+func (m *argsMap) Limit() int {
 	return m.limit
 }
 
 // Offset is a method to returns the value of the OFFSET clause in the SQL query.
-func (m *argsMap) Offset() uint {
+func (m *argsMap) Offset() int {
 	return m.offset
 }
 
