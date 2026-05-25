@@ -74,6 +74,7 @@ func NewArgs(args map[string]any, opt ...Option) *argsMap {
 		}
 	}
 
+	m.orderByRules = make(map[string]string, 0)
 	m.orderKey = opts.orderKeyFunc(orderValues)
 	m.args = args
 
