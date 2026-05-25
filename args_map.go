@@ -156,6 +156,18 @@ func (m *argsMap) Value(param string) any {
 	return nil
 }
 
+// Values returns the specified parameter as a []any.
+// Returns nil if the key is absent. Note: performs a direct type assertion
+// and will panic if the stored value is not a []any.
+func (m *argsMap) Values(param string) []any {
+
+	if val, ok := m.args[param]; ok {
+		return val.([]any)
+	}
+
+	return nil
+}
+
 // Limit is a method to returns the value of the LIMIT clause in the SQL query.
 func (m *argsMap) Limit() int {
 	return m.limit
