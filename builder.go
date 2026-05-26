@@ -92,6 +92,22 @@ func (b *QueryBuilder) FilterSelect(f *Filter, inputFields []string) *QueryBuild
 	return b
 }
 
+// AndFilterSelect appends dynamically filtered columns and their associated JOIN clauses
+// to the current SELECT statement. It evaluates inputFields against the Filter mapping,
+// adds matching column expressions to the query, and registers any required JOINs.
+// Unlike FilterSelect, this method preserves existing columns instead of replacing them.
+// Returns the QueryBuilder for method chaining.
+func (b *QueryBuilder) AndFilterSelect(f *Filter, inputFields []string) *QueryBuilder {
+
+	b.columns = append(b.columns, f.Filter(inputFields)...)
+
+	for _, j := range f.FilterJoins(inputFields) {
+		b.Join(j.joinType, j.table, j.on, j.args...)
+	}
+
+	return b
+}
+
 // From sets the main table for the SELECT query.
 // Accepts a table name (optionally with alias, e.g., "users AS u").
 // Returns the QueryBuilder for chaining.
