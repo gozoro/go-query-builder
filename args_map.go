@@ -169,6 +169,24 @@ func (m *argsMap) Values(param string) []any {
 	return nil
 }
 
+// ValueLike safely retrieves a string argument and formats it for SQL LIKE pattern matching.
+// It checks if the specified parameter exists in the arguments map and is of string type.
+// If valid, it returns the value wrapped with '%' wildcards (e.g., "%search%").
+// Returns nil if the parameter is missing, nil, or not a string.
+// The return type is 'any' to allow direct passing to query builders that handle nil-safe parameters.
+func (m *argsMap) ValueLike(param string) any {
+	if val, ok := m.args[param]; ok {
+
+		str, isStr := val.(string)
+
+		if isStr {
+			return "%" + str + "%"
+		}
+	}
+
+	return nil
+}
+
 // Limit is a method to returns the value of the LIMIT clause in the SQL query.
 func (m *argsMap) Limit() int {
 	return m.limit
