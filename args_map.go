@@ -1,6 +1,9 @@
 package query_builder
 
-import "strings"
+import (
+	"strings"
+	"time"
+)
 
 type argsMap struct {
 	opts *options
@@ -185,6 +188,20 @@ func (m *argsMap) ValueLike(param string) any {
 	}
 
 	return nil
+}
+
+// ValueTime retrieves the specified argument and converts it to a time.Time.
+// It expects the underlying value to be a Unix timestamp in seconds (int64).
+// Returns nil if the parameter is missing, or the converted time.
+func (m *argsMap) ValueTime(param string) any {
+
+	v := m.Value(param)
+
+	if v == nil {
+		return nil
+	}
+
+	return time.Unix(v.(int64), 0)
 }
 
 // Limit is a method to returns the value of the LIMIT clause in the SQL query.
