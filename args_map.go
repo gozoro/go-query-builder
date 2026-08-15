@@ -183,11 +183,18 @@ func (m *argsMap) ValueLike(param string) any {
 		str, isStr := val.(string)
 
 		if isStr {
-			return "%" + str + "%"
+			return "%" + escapeLike(str) + "%"
 		}
 	}
 
 	return nil
+}
+
+func escapeLike(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\\`)
+	s = strings.ReplaceAll(s, `%`, `\%`)
+	s = strings.ReplaceAll(s, `_`, `\_`)
+	return s
 }
 
 // ValueTime retrieves the specified argument and converts it to a time.Time.

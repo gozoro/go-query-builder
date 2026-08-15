@@ -1,8 +1,14 @@
 ## ChangeLog
 
+#### new features
+
+- add escape to method argsMap.ValueLike()
+
+
 #### v1.0.6 (2026-06-01)
 
 - add method argsMap.ValueTime()
+
 
 #### v1.0.5 (2026-05-30)
 
