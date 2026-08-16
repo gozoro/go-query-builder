@@ -152,6 +152,7 @@ func (b *QueryBuilder) RightJoin(table string, on string, args ...any) *QueryBui
 func (b *QueryBuilder) Where(sqltpl string, args ...any) *QueryBuilder {
 
 	b.where = make([]string, 0)
+	b.whereArgs = make([]any, 0)
 	b.AndWhere(sqltpl, args...)
 	return b
 }
