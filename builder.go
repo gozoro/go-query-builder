@@ -24,6 +24,7 @@ type QueryBuilder struct {
 	joins   []string
 	where   []string
 	groupBy string
+	having  []string
 	orderBy string
 	limit   string
 	offset  string
@@ -31,6 +32,7 @@ type QueryBuilder struct {
 	selectArgs []any
 	joinArgs   []any
 	whereArgs  []any
+	havingArgs []any
 }
 
 // NewQueryBuilder initializes and returns a new QueryBuilder instance
@@ -146,9 +148,13 @@ func (b *QueryBuilder) RightJoin(table string, on string, args ...any) *QueryBui
 	return b.Join("RIGHT JOIN", table, on, args...)
 }
 
-// Where sets the WHERE clause, replacing any previously set conditions.
-// Accepts a SQL template with placeholders and optional parameterized arguments.
-// Returns the QueryBuilder for chaining.
+// Where sets the WHERE clause of the query, completely replacing any previously
+// set WHERE conditions. It accepts a SQL template string with placeholders and
+// optional parameterized arguments.
+//
+// Note: Calling Where() multiple times will overwrite previous conditions.
+// To append additional conditions using AND logic, use AndWhere() instead.
+// Returns the QueryBuilder instance for method chaining.
 func (b *QueryBuilder) Where(sqltpl string, args ...any) *QueryBuilder {
 
 	b.where = make([]string, 0)
@@ -202,6 +208,57 @@ func (b *QueryBuilder) AndFilterWhere(sqltpl string, args ...any) *QueryBuilder 
 func (b *QueryBuilder) GroupBy(groupBy string) *QueryBuilder {
 
 	b.groupBy = groupBy
+	return b
+}
+
+// Having sets the HAVING clause of the query, replacing any previously set HAVING conditions.
+// It accepts a SQL template string with placeholders and corresponding arguments.
+//
+// Note: calling Having multiple times will overwrite previous HAVING conditions.
+// Use AndHaving to combine multiple HAVING clauses with AND.
+func (b *QueryBuilder) Having(sqltpl string, args ...any) *QueryBuilder {
+
+	b.having = make([]string, 0)
+	b.havingArgs = make([]any, 0)
+	b.AndHaving(sqltpl, args...)
+	return b
+}
+
+// AndHaving appends an additional condition to the HAVING clause,
+// combining it with existing conditions using AND logic.
+// It accepts a SQL template string with placeholders and optional parameterized arguments.
+// Returns the QueryBuilder instance for method chaining.
+func (b *QueryBuilder) AndHaving(sqltpl string, args ...any) *QueryBuilder {
+
+	b.having = append(b.having, sqltpl)
+	b.havingArgs = append(b.havingArgs, args...)
+	return b
+}
+
+// FilterHaving conditionally sets the HAVING clause, but ONLY if at least one
+// of the provided arguments is non-nil.
+//
+// WARNING: If the condition is met, this method calls Having(), which completely
+// overwrites any previously set HAVING conditions.
+// Returns the QueryBuilder instance for method chaining.
+func (b *QueryBuilder) FilterHaving(sqltpl string, args ...any) *QueryBuilder {
+
+	if sliceNotNils(args) {
+		b.Having(sqltpl, args...)
+	}
+	return b
+}
+
+// AndFilterHaving conditionally appends an additional condition to the HAVING clause
+// using AND logic, but ONLY if at least one of the provided arguments is non-nil.
+// Unlike FilterHaving, this method preserves any previously set HAVING conditions.
+// This is the safest and most common choice for building dynamic HAVING clauses.
+// Returns the QueryBuilder instance for method chaining.
+func (b *QueryBuilder) AndFilterHaving(sqltpl string, args ...any) *QueryBuilder {
+
+	if sliceNotNils(args) {
+		b.AndHaving(sqltpl, args...)
+	}
 	return b
 }
 
@@ -285,6 +342,25 @@ func (b *QueryBuilder) createGroupBy() string {
 	return "GROUP BY " + b.groupBy + " "
 }
 
+// GetHaving returns the combined HAVING clause as a string and its arguments.
+// If no conditions are set, returns "" with nil arguments.
+func (b *QueryBuilder) GetHaving() (string, []any) {
+	if len(b.having) == 0 {
+		return "", nil
+	}
+	return strings.Join(b.having, " AND "), b.havingArgs
+}
+
+func (b *QueryBuilder) createHaving() (string, []any) {
+	having, havingArgs := b.GetHaving()
+
+	if having == "" {
+		return having, havingArgs
+	}
+
+	return "HAVING " + having + " ", havingArgs
+}
+
 func (b *QueryBuilder) createOrderBy() string {
 
 	if b.orderBy == "" {
@@ -341,18 +417,20 @@ func (b *QueryBuilder) BuildSQL() (string, []any) {
 	JOIN, joinArgs := b.createJoins()
 	WHERE, whereArgs := b.createWhere()
 	GROUP_BY := b.createGroupBy()
+	HAVING, havingArgs := b.createHaving()
 	ORDER_BY := b.createOrderBy()
 	LIMIT, limitArgs := b.createLimit()
 	OFFSET, offsetArgs := b.createOffset()
 
-	args := make([]any, 0, len(selectArgs)+len(joinArgs)+len(whereArgs)+len(limitArgs)+len(offsetArgs))
+	args := make([]any, 0, len(selectArgs)+len(joinArgs)+len(whereArgs)+len(havingArgs)+len(limitArgs)+len(offsetArgs))
 	args = append(args, selectArgs...)
 	args = append(args, joinArgs...)
 	args = append(args, whereArgs...)
+	args = append(args, havingArgs...)
 	args = append(args, limitArgs...)
 	args = append(args, offsetArgs...)
 
-	query := SELECT + FROM + JOIN + WHERE + GROUP_BY + ORDER_BY + LIMIT + OFFSET
+	query := SELECT + FROM + JOIN + WHERE + GROUP_BY + HAVING + ORDER_BY + LIMIT + OFFSET
 
 	if b.placeholder != Question {
 		query = fmt.Sprintf(query, b.placenums(args, 1)...)
