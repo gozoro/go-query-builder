@@ -10,8 +10,9 @@ type Filter struct {
 }
 
 type column struct {
-	name string
-	j    *join
+	columnName string
+	aliasName  string
+	j          *join
 }
 
 type join struct {
@@ -29,37 +30,60 @@ func NewFilter() *Filter {
 	}
 }
 
+// AddAliasForParam registers a mapping between an input parameter and an
+// aliased SQL column.
+//
+// sqlColumn is the source SQL column or expression.
+// alias is the alias used in SELECT, e.g. "sqlColumn AS alias".
+// inputParam is the input parameter name that enables this column.
+//
+// If inputParam was not registered before, it is appended to the order list.
+// If it was already registered, its order position is preserved and the
+// existing mapping is replaced.
+//
+// AddAliasForParam returns the filter to allow method chaining.
+func (f *Filter) AddAliasForParam(sqlColumn, aliasName, inputParam string) *Filter {
+
+	if _, exists := f.mapping[inputParam]; !exists {
+		f.order = append(f.order, inputParam)
+	}
+	f.mapping[inputParam] = column{columnName: sqlColumn, aliasName: aliasName}
+	return f
+}
+
 // AddAlias registers a mapping from a user-facing field name to its underlying SQL column.
 // It returns the Filter to allow for method chaining. If the alias already exists,
 // its mapping is updated while preserving its original insertion order.
 func (f *Filter) AddAlias(sqlColumn, aliasField string) *Filter {
-	if _, exists := f.mapping[aliasField]; !exists {
-		f.order = append(f.order, aliasField)
-	}
-	f.mapping[aliasField] = column{name: sqlColumn}
-	return f
+	return f.AddAliasForParam(sqlColumn, aliasField, aliasField)
 }
 
 // AddColumn registers a SQL column where the user-facing field name matches the column name exactly.
 // It returns the Filter to allow for method chaining.
 func (f *Filter) AddColumn(sqlColumn string) *Filter {
-	return f.AddAlias(sqlColumn, sqlColumn)
+	return f.AddAliasForParam(sqlColumn, sqlColumn, sqlColumn)
 }
 
-// AddAliasWithJoin registers a mapping from a user-facing field name to its underlying SQL column,
-// and associates it with a JOIN clause to be included when this field is selected.
-//   - sqlColumn: the actual column name in the database (e.g., "orders.total")
-//   - aliasField: the user-facing field name (e.g., "orderTotal")
-//   - joinType: the type of JOIN (e.g., "INNER JOIN", "LEFT JOIN")
-//   - table: the table to join (e.g., "orders AS o")
-//   - on: the ON condition with placeholders (e.g., "o.user_id = u.id AND o.status = $1")
-//   - args: parameterized arguments for the ON condition
+// AddAliasForParamWithJoin registers a mapping between an input parameter and
+// an aliased SQL column, together with the JOIN required for that column.
 //
-// If the aliasField already exists, its mapping is updated while preserving insertion order.
-// Returns the Filter for method chaining.
-func (f *Filter) AddAliasWithJoin(sqlColumn, aliasField, joinType, table, on string, args ...any) *Filter {
-	if _, exists := f.mapping[aliasField]; !exists {
-		f.order = append(f.order, aliasField)
+// sqlColumn is the source SQL column or expression.
+// aliasName is the alias used in SELECT, e.g. "sqlColumn AS aliasName".
+// inputParam is the input parameter name that enables this column.
+// joinType is the type of join, for example INNER JOIN or LEFT JOIN.
+// table is the table to join.
+// on is the join condition.
+// args are optional arguments for placeholders in the join condition.
+//
+// If inputParam was not registered before, it is appended to the order list.
+// If it was already registered, its order position is preserved and the
+// existing mapping is replaced.
+//
+// AddAliasForParamWithJoin returns the filter to allow method chaining.
+func (f *Filter) AddAliasForParamWithJoin(sqlColumn, aliasName, inputParam, joinType, table, on string, args ...any) *Filter {
+
+	if _, exists := f.mapping[inputParam]; !exists {
+		f.order = append(f.order, inputParam)
 	}
 
 	j := &join{
@@ -69,7 +93,25 @@ func (f *Filter) AddAliasWithJoin(sqlColumn, aliasField, joinType, table, on str
 		args:     args,
 	}
 
-	f.mapping[aliasField] = column{name: sqlColumn, j: j}
+	f.mapping[inputParam] = column{columnName: sqlColumn, aliasName: aliasName, j: j}
+
+	return f
+}
+
+// AddAliasWithJoin registers a mapping from a user-facing field name to its underlying SQL column,
+// and associates it with a JOIN clause to be included when this field is selected.
+//   - sqlColumn: the actual column name in the database (e.g., "orders.total")
+//   - aliasName: the user-facing field name (e.g., "orderTotal")
+//   - joinType: the type of JOIN (e.g., "INNER JOIN", "LEFT JOIN")
+//   - table: the table to join (e.g., "orders AS o")
+//   - on: the ON condition with placeholders (e.g., "o.user_id = u.id AND o.status = $1")
+//   - args: parameterized arguments for the ON condition
+//
+// If the aliasName already exists, its mapping is updated while preserving insertion order.
+// Returns the Filter for method chaining.
+func (f *Filter) AddAliasWithJoin(sqlColumn, aliasName, joinType, table, on string, args ...any) *Filter {
+
+	f.AddAliasForParamWithJoin(sqlColumn, aliasName, aliasName, joinType, table, on, args...)
 	return f
 }
 
@@ -101,8 +143,8 @@ func (f *Filter) AddAliasWithRightJoin(sqlColumn, aliasField, table, on string, 
 }
 
 func (f *Filter) FilterJoins(inputNames []string) []join {
-	joins := make([]join, 0, len(inputNames))
 
+	joins := make([]join, 0, len(inputNames))
 	joinMap := make(map[string]struct{}, len(inputNames))
 
 	for _, inputName := range inputNames {
@@ -132,10 +174,10 @@ func (f *Filter) Filter(inputNames []string) []string {
 
 	for _, inputName := range inputNames {
 		if column, ok := f.mapping[inputName]; ok {
-			if column.name == inputName {
-				columns = append(columns, column.name)
+			if column.columnName == column.aliasName {
+				columns = append(columns, column.columnName)
 			} else {
-				columns = append(columns, fmt.Sprintf("%s AS %s", column.name, inputName))
+				columns = append(columns, fmt.Sprintf("%s AS %s", column.columnName, column.aliasName))
 			}
 		}
 	}
@@ -148,7 +190,7 @@ func (f *Filter) Filter(inputNames []string) []string {
 func (f *Filter) GetSqlColumns() []string {
 	fields := make([]string, 0, len(f.order))
 	for _, alias := range f.order {
-		fields = append(fields, f.mapping[alias].name)
+		fields = append(fields, f.mapping[alias].columnName)
 	}
 	return fields
 }

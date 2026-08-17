@@ -3,6 +3,13 @@
 #### new features
 
 - add escape to method argsMap.ValueLike()
+- add method QueryBuilder.Having()
+- add method QueryBuilder.AndHaving()
+- add method QueryBuilder.FilterHaving()
+- add method QueryBuilder.AndFilterHaving()
+- add method QueryBuilder.GetHaving()
+- add method Filter.AddAliasForParam()
+- add method Filter.AddAliasForParamWithJoin()
 
 
 #### v1.0.6 (2026-06-01)
