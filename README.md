@@ -184,3 +184,7 @@ ph3 := qub.IndexedPlaceholders(":p%d", ", ", 5, 2)
 2. **Column names in `AddColumn` are not auto-escaped.** If the column name originates from user input, you must validate it against a strict whitelist or escape it using your database driver's identifier quoting function (e.g., `pq.QuoteIdentifier`).
 3. **Use `ArgsMap` for sorting.** Never interpolate `ORDER BY` directly from user input. Use `AddOrderRule` to map client-facing sort keys to hardcoded, safe SQL expressions.
 4. **Prefer `AndFilterWhere` / `AndFilterHaving`** over their non-And counterparts when building dynamic queries, as they preserve existing conditions instead of overwriting them.
+
+
+## License
+This project is licensed under the MIT License.
