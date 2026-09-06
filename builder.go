@@ -69,6 +69,8 @@ func (b *QueryBuilder) Select(sel string, args ...any) *QueryBuilder {
 	return b.AndSelect(sel, args...)
 }
 
+// Deprecated: use AddSelect instead. AndSelect will be removed in v1.0.9.
+//
 // AndSelect appends additional column expressions to the SELECT clause.
 // Accepts a column expression and optional parameterized arguments.
 // Returns the QueryBuilder for chaining.
@@ -79,6 +81,47 @@ func (b *QueryBuilder) AndSelect(sel string, args ...any) *QueryBuilder {
 	return b
 }
 
+// AddSelect appends additional column expressions to the SELECT clause.
+// Accepts a column expression and optional parameterized arguments.
+// Returns the QueryBuilder for chaining.
+func (b *QueryBuilder) AddSelect(col string, args ...any) *QueryBuilder {
+
+	b.columns = append(b.columns, col)
+	b.selectArgs = append(b.selectArgs, args...)
+	return b
+}
+
+// SelectFilter sets the SELECT clause using a selectFilter mapping.
+// Returns the QueryBuilder for method chaining.
+func (b *QueryBuilder) SelectFilter(f *selectFilter) *QueryBuilder {
+
+	b.columns = make([]string, 0, len(f.inputFields))
+	b.selectArgs = make([]any, 0)
+	b.AddSelectFilter(f)
+	return b
+}
+
+// AddSelectFilter appends dynamically filtered columns and their associated JOIN clauses
+// to the current SELECT statement. It evaluates inputFields against the Filter mapping,
+// adds matching column expressions to the query, and registers any required JOINs.
+// Unlike SelectFilter, this method preserves existing columns instead of replacing them.
+// Returns the QueryBuilder for method chaining.
+func (b *QueryBuilder) AddSelectFilter(f *selectFilter) *QueryBuilder {
+
+	columns, args, joins := f.GetColumns()
+
+	b.columns = append(b.columns, columns...)
+	b.selectArgs = append(b.selectArgs, args...)
+
+	for _, j := range joins {
+		b.Join(j.joinType, j.table, j.on, j.args...)
+	}
+
+	return b
+}
+
+// Deprecated: use SelectFilter instead. FilterSelect will be removed in v1.0.9.
+//
 // FilterSelect sets the SELECT clause using a Filter mapping and a list
 // of requested field names. Only fields present in the Filter are included,
 // with automatic aliasing (e.g., "full_name AS name"). Returns the QueryBuilder.
@@ -94,6 +137,8 @@ func (b *QueryBuilder) FilterSelect(f *Filter, inputFields []string) *QueryBuild
 	return b
 }
 
+// Deprecated: use AddSelectFilter instead. AndFilterSelect will be removed in v1.0.9.
+//
 // AndFilterSelect appends dynamically filtered columns and their associated JOIN clauses
 // to the current SELECT statement. It evaluates inputFields against the Filter mapping,
 // adds matching column expressions to the query, and registers any required JOINs.
@@ -146,6 +191,12 @@ func (b *QueryBuilder) LeftJoin(table string, on string, args ...any) *QueryBuil
 func (b *QueryBuilder) RightJoin(table string, on string, args ...any) *QueryBuilder {
 
 	return b.Join("RIGHT JOIN", table, on, args...)
+}
+
+// CrossJoin adds a CROSS JOIN clause. Shorthand for Join("CROSS JOIN", ...).
+func (b *QueryBuilder) CrossJoin(table string, on string, args ...any) *QueryBuilder {
+
+	return b.Join("CROSS JOIN", table, on, args...)
 }
 
 // Where sets the WHERE clause of the query, completely replacing any previously

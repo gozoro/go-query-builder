@@ -1,6 +1,21 @@
 ## ChangeLog
 
-#### new features
+#### v1.0.8 (2026-09-06)
+
+- deprecated Filter
+- deprecated func NewFilter()
+- add struct selectFilter instead Filter
+- add func NewSelectFilter() instead NewFilter()
+- deprecated method QueryBuilder.AndSelect()
+- add method QueryBuilder.AddSelect()
+- add method QueryBuilder.SelectFilter()
+- add method QueryBuilder.AddSelectFilter()
+- deprecated method QueryBuilder.FilterSelect()
+- deprecated method QueryBuilder.AndFilterSelect()
+- add method QueryBuilder.CrossJoin()
+
+
+#### v1.0.7 (2026-08-17)
 
 - add escape to method argsMap.ValueLike()
 - add method QueryBuilder.Having()
